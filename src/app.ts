@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import vehicleRoutes from './routes/vehicleRoutes';
 
 const app = express();
 
@@ -19,4 +20,21 @@ app.get('/api/health', (_req, res) => {
     });
 });
 
+app.use('/api/vehicles', vehicleRoutes);
+
+app.use(
+    (
+        error: unknown,
+        _req: express.Request,
+        res: express.Response,
+        _next: express.NextFunction
+    ) => {
+        console.error(error);
+
+        res.status(500).json({
+            success: false,
+            message: 'Internal server error',
+        });
+    }
+);
 export default app;
