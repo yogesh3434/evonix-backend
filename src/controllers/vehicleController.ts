@@ -31,14 +31,6 @@ export const showVehicle = async (
     try {
         const vehicle = await getVehicle(req.params.id);
 
-        if (!vehicle) {
-            res.status(404).json({
-                success: false,
-                message: 'Vehicle not found',
-            });
-            return;
-        }
-
         res.status(200).json({
             success: true,
             data: vehicle,

@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import vehicleRoutes from './routes/vehicleRoutes';
+import { notFoundMiddleware } from './middleware/notFoundMiddleware';
+import { errorMiddleware } from './middleware/errorMiddleware';
 
 const app = express();
 
@@ -21,6 +23,8 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/vehicles', vehicleRoutes);
+app.use(notFoundMiddleware);
+app.use(errorMiddleware);
 
 app.use(
     (

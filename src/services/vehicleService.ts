@@ -4,6 +4,7 @@ import {
     findHotDealVehicles,
     findVehicleById,
 } from '../repositories/vehicleRepository';
+import { AppError } from '../errors/AppError';
 
 export type VehicleResponse = {
     id: string;
@@ -69,9 +70,14 @@ export const getVehicles = async (): Promise<VehicleResponse[]> => {
 
 export const getVehicle = async (
     id: string
-): Promise<VehicleResponse | null> => {
+): Promise<VehicleResponse> => {
     const vehicle = await findVehicleById(id);
-    return vehicle ? mapVehicleResponse(vehicle) : null;
+
+    if (!vehicle) {
+        throw new AppError(404, 'Vehicle not found');
+    }
+
+    return mapVehicleResponse(vehicle);
 };
 
 export const getHotDeals = async (): Promise<VehicleResponse[]> => {
