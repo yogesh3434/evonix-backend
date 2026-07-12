@@ -4,19 +4,25 @@ import {
     getVehicle,
     getVehicles,
 } from '../services/vehicleService';
+import { parseVehicleQuery } from '../validators/vehicleValidator';
 
 export const listVehicles = async (
-    _req: Request,
+    req: Request,
     res: Response,
     next: NextFunction
 ): Promise<void> => {
     try {
-        const vehicles = await getVehicles();
+        const query = parseVehicleQuery(req.query);
+        const result = await getVehicles(query);
 
         res.status(200).json({
             success: true,
-            count: vehicles.length,
-            data: vehicles,
+            count: result.data.length,
+            total: result.total,
+            page: result.page,
+            limit: result.limit,
+            totalPages: result.totalPages,
+            data: result.data,
         });
     } catch (error) {
         next(error);

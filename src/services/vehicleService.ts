@@ -1,10 +1,11 @@
 import { Vehicle } from '../entities/Vehicle';
 import {
-    findAllActiveVehicles,
+    findVehicles,
     findHotDealVehicles,
     findVehicleById,
 } from '../repositories/vehicleRepository';
 import { AppError } from '../errors/AppError';
+import { PaginatedResult, VehicleQuery } from '../types/vehicle';
 
 export type VehicleResponse = {
     id: string;
@@ -63,9 +64,18 @@ const mapVehicleResponse = (vehicle: Vehicle): VehicleResponse => ({
     isActive: vehicle.isActive,
 });
 
-export const getVehicles = async (): Promise<VehicleResponse[]> => {
-    const vehicles = await findAllActiveVehicles();
-    return vehicles.map(mapVehicleResponse);
+export const getVehicles = async (
+    query: VehicleQuery
+): Promise<PaginatedResult<VehicleResponse>> => {
+    const result = await findVehicles(query);
+
+    return {
+        data: result.data.map(mapVehicleResponse),
+        total: result.total,
+        page: result.page,
+        limit: result.limit,
+        totalPages: result.totalPages,
+    };
 };
 
 export const getVehicle = async (
