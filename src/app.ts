@@ -28,19 +28,5 @@ app.use('/api/auth', authRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
-app.use(
-    (
-        error: unknown,
-        _req: express.Request,
-        res: express.Response,
-        _next: express.NextFunction
-    ) => {
-        console.error(error);
 
-        res.status(500).json({
-            success: false,
-            message: 'Internal server error',
-        });
-    }
-);
 export default app;
