@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import vehicleRoutes from './routes/vehicleRoutes';
 import { notFoundMiddleware } from './middleware/notFoundMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
+import authRoutes from './routes/authRoutes';
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get('/api/health', (_req, res) => {
 app.use('/api/vehicles', vehicleRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
+app.use('/api/auth', authRoutes);
 
 app.use(
     (
