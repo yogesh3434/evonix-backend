@@ -24,9 +24,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 app.use('/api/vehicles', vehicleRoutes);
+app.use('/api/auth', authRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
-app.use('/api/auth', authRoutes);
 
 app.use(
     (
