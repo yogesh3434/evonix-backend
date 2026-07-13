@@ -1,4 +1,4 @@
-import { Review } from '../entities/Review';
+import { Review, ReviewStatus } from '../entities/Review';
 import {
     findAverageRating,
     findReviewByUserAndVehicle,
@@ -49,6 +49,7 @@ export const submitReview = async (
         rating: input.rating,
         title: input.title ?? null,
         body: input.body ?? null,
+        status: ReviewStatus.APPROVED,
     });
 
     return mapReviewResponse(review);

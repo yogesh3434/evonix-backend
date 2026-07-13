@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Complete Registration</title>
+</head>
+<body>
+  <h1>Complete Your Profile</h1>
+  <p><a href="/index.html">Catalogue</a> | <a href="/login.html">Sign In</a></p>
+
+  <div id="notSignedIn">
+    <p>You must sign in with Google before completing your profile.</p>
+    <p><a href="/login.html">Go to Sign In</a></p>
+  </div>
+
+  <div id="form" style="display:none">
+    <p>Google does not provide a phone number or address, so please add them here.</p>
+
+    <h2>Phone</h2>
+    <label>Phone: <input type="text" id="phone"></label>
+
+    <h2>Default Address</h2>
+    <label>Street: <input type="text" id="street"></label><br>
+    <label>City: <input type="text" id="city"></label><br>
+    <label>Province: <input type="text" id="province"></label><br>
+    <label>Postal Code: <input type="text" id="postalCode"></label><br>
+    <label>Country: <input type="text" id="country"></label><br>
+
+    <p>Provide at least a phone number or a complete address.</p>
+    <button onclick="submitProfile()">Save Profile</button>
+  </div>
+
+  <p id="status"></p>
+
+  <script>
+    const token = localStorage.getItem('accessToken');
+
+    if (token) {
+      document.getElementById('notSignedIn').style.display = 'none';
+      document.getElementById('form').style.display = 'block';
+    }
+
+    async function submitProfile() {
+      const phone = document.getElementById('phone').value.trim();
+      const street = document.getElementById('street').value.trim();
+      const city = document.getElementById('city').value.trim();
+      const province = document.getElementById('province').value.trim();
+      const postalCode = document.getElementById('postalCode').value.trim();
+      const country = document.getElementById('country').value.trim();
+
+      const payload = {};
+
+      if (phone) {
+        payload.phone = phone;
+      }
+
+     
+      if (street || city || province || postalCode) {
+        payload.address = {
+          street: street,
+          city: city,
+          province: province,
+          postalCode: postalCode,
+        };
+
+        if (country) {
+          payload.address.country = country;
+        }
+      }
+
+      const response = await fetch('/api/auth/profile', {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        document.getElementById('status').textContent =
+          'Profile saved successfully.';
+      } else {
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+      }
+    }
+  </script>
+</body>
+</html>

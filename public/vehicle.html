@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Vehicle Details</title>
+</head>
+<body>
+  <h1>Vehicle Details</h1>
+  <p><a href="/index.html">Back to Catalogue</a></p>
+
+  <div id="details">Loading...</div>
+
+  <h2>Reviews</h2>
+  <div id="reviews">Loading...</div>
+
+  <h2>Write a Review</h2>
+  <label>Rating (1-5): <input type="number" id="rating" min="1" max="5"></label><br>
+  <label>Title: <input type="text" id="title"></label><br>
+  <label>Review: <textarea id="body"></textarea></label><br>
+  <button onclick="submitReview()">Submit Review</button>
+  <p id="reviewStatus"></p>
+
+  <script>
+    const vehicleId = new URLSearchParams(window.location.search).get('id');
+
+    async function loadDetails() {
+      const response = await fetch('/api/vehicles/' + vehicleId);
+      const result = await response.json();
+      const vehicle = result.data;
+
+      document.getElementById('details').innerHTML =
+        '<h2>' + vehicle.name + '</h2>' +
+        '<p>' + (vehicle.description || '') + '</p>' +
+        '<p>Brand: ' + vehicle.brand + '</p>' +
+        '<p>Model: ' + vehicle.model + '</p>' +
+        '<p>Model Year: ' + vehicle.modelYear + '</p>' +
+        '<p>Condition: ' + vehicle.condition + '</p>' +
+        '<p>Body Style: ' + vehicle.bodyStyle + '</p>' +
+        '<p>Range: ' + vehicle.rangeKm + ' km</p>' +
+        '<p>Battery: ' + vehicle.batteryKwh + ' kWh</p>' +
+        '<p>Horsepower: ' + vehicle.horsepower + '</p>' +
+        '<p>Seating: ' + vehicle.seatingCapacity + '</p>' +
+        '<p>Mileage: ' + vehicle.mileageKm + ' km</p>' +
+        '<p>Price: $' + vehicle.price + '</p>';
+    }
+
+    async function loadReviews() {
+      const response = await fetch('/api/reviews/vehicle/' + vehicleId);
+      const result = await response.json();
+
+      const container = document.getElementById('reviews');
+      container.innerHTML = '<p>Average Rating: ' + result.averageRating + ' / 5 (' + result.total + ' reviews)</p>';
+
+      if (result.data.length === 0) {
+        container.innerHTML += '<p>No reviews yet.</p>';
+        return;
+      }
+
+      result.data.forEach(function (review) {
+        const block = document.createElement('div');
+        block.innerHTML =
+          '<p><strong>' + (review.title || 'Review') + '</strong> - ' + review.rating + '/5 stars</p>' +
+          '<p>' + (review.body || '') + '</p>' +
+          '<hr>';
+        container.appendChild(block);
+      });
+    }
+
+    async function submitReview() {
+      const token = localStorage.getItem('accessToken');
+
+      if (!token) {
+        document.getElementById('reviewStatus').textContent =
+          'You must sign in first.';
+        return;
+      }
+
+      const response = await fetch('/api/reviews', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          vehicleId: vehicleId,
+          rating: Number(document.getElementById('rating').value),
+          title: document.getElementById('title').value,
+          body: document.getElementById('body').value,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        document.getElementById('reviewStatus').textContent =
+          'Review submitted.';
+        loadReviews();
+      } else {
+        document.getElementById('reviewStatus').textContent =
+          'Error: ' + result.message;
+      }
+    }
+
+    loadDetails();
+    loadReviews();
+  </script>
+</body>
+</html>

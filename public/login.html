@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Sign In</title>
+</head>
+<body>
+  <h1>Sign In</h1>
+  <p><a href="/index.html">Back to Catalogue</a></p>
+
+  <div id="signedOut">
+    <p>Sign in with your Google account to write reviews.</p>
+    <button onclick="signIn()">Sign in with Google</button>
+  </div>
+
+  <div id="signedIn" style="display:none">
+    <h2>You are signed in</h2>
+    <p id="userInfo"></p>
+    <p><a href="/register.html">Complete your profile</a></p>
+    <button onclick="signOut()">Sign Out</button>
+  </div>
+
+  <p id="status"></p>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = 'https://wqedskjaojhcngflhfit.supabase.co';
+    const SUPABASE_ANON_KEY = 'sb_publishable_Z7LllhTUhrNGHrEI95mJqg_VYoLoQHW';
+
+    const client = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    async function signIn() {
+      const { error } = await client.auth.signInWithOAuth({
+        provider: 'google',
+        options: {
+          redirectTo: window.location.origin + '/login.html',
+        },
+      });
+
+      if (error) {
+        document.getElementById('status').textContent = 'Error: ' + error.message;
+      }
+    }
+
+    async function signOut() {
+      const token = localStorage.getItem('accessToken');
+
+      // Tell our backend to revoke the session.
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      await client.auth.signOut();
+      localStorage.removeItem('accessToken');
+
+      document.getElementById('signedIn').style.display = 'none';
+      document.getElementById('signedOut').style.display = 'block';
+      document.getElementById('status').textContent = 'You have been signed out.';
+    }
+
+    // Runs on page load. If Supabase has a session (either an existing one or
+    // one just created by the OAuth redirect), store the token and verify it
+    // against our backend.
+    async function checkSession() {
+      const { data } = await client.auth.getSession();
+
+      if (!data.session) {
+        return;
+      }
+
+      const token = data.session.access_token;
+      localStorage.setItem('accessToken', token);
+
+      const response = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        document.getElementById('signedOut').style.display = 'none';
+        document.getElementById('signedIn').style.display = 'block';
+        document.getElementById('userInfo').textContent =
+          'Signed in as: ' + JSON.stringify(result.data);
+      } else {
+        document.getElementById('status').textContent =
+          'Session invalid: ' + result.message;
+      }
+    }
+
+    checkSession();
+  </script>
+</body>
+</html>

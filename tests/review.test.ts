@@ -30,14 +30,14 @@ describe('Reviews API', () => {
     it('TC-019: creates a review when the input is valid', async () => {
         mockedRepo.vehicleExists.mockResolvedValue(true);
         mockedRepo.findReviewByUserAndVehicle.mockResolvedValue(null);
-        mockedRepo.saveReview.mockResolvedValue({
+       mockedRepo.saveReview.mockResolvedValue({
             id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
             userId: '11111111-1111-1111-1111-111111111111',
             vehicleId: VALID_VEHICLE_ID,
             rating: 4,
             title: 'Great SUV',
             body: 'Excellent range and very quiet.',
-            status: ReviewStatus.PENDING,
+            status: ReviewStatus.APPROVED,
             createdAt: new Date(),
             updatedAt: new Date(),
         } as any);
@@ -51,7 +51,7 @@ describe('Reviews API', () => {
 
         expect(response.status).toBe(201);
         expect(response.body.data.rating).toBe(4);
-        expect(response.body.data.status).toBe('pending');
+        expect(response.body.data.status).toBe('approved');
         expect(mockedRepo.saveReview).toHaveBeenCalled();
     });
 

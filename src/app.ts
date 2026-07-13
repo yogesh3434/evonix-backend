@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import path from 'path';
 import vehicleRoutes from './routes/vehicleRoutes';
 import { notFoundMiddleware } from './middleware/notFoundMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
@@ -9,13 +10,21 @@ import reviewRoutes from './routes/reviewRoutes';
 
 const app = express();
 
-app.use(helmet());
+
+app.use(
+    helmet({
+        contentSecurityPolicy: false,
+    })
+);
 app.use(
     cors({
         origin: process.env.FRONTEND_URL || 'http://localhost:5173',
     })
 );
 app.use(express.json());
+
+app.use(express.static(path.join(__dirname, '..', 'public')));
+
 
 app.get('/api/health', (_req, res) => {
     res.status(200).json({

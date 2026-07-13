@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Catalogue</title>
+</head>
+<body>
+  <h1>EvoNix Vehicle Catalogue</h1>
+  <p>
+    <a href="/index.html">Catalogue</a> |
+    <a href="/hot-deals.html">Hot Deals</a> |
+    <a href="/login.html">Sign In</a>
+  </p>
+
+  <h2>Filter and Sort</h2>
+  <label>Brand: <input type="text" id="brand"></label>
+  <label>Body Style: <input type="text" id="bodyStyle"></label>
+  <label>Model Year: <input type="number" id="modelYear"></label>
+  <label>Condition:
+    <select id="condition">
+      <option value="">Any</option>
+      <option value="new">New</option>
+      <option value="used">Used</option>
+    </select>
+  </label>
+  <label>Sort By:
+    <select id="sortBy">
+      <option value="modelYear">Model Year</option>
+      <option value="price">Price</option>
+      <option value="mileage">Mileage</option>
+    </select>
+  </label>
+  <label>Order:
+    <select id="sortOrder">
+      <option value="desc">Descending</option>
+      <option value="asc">Ascending</option>
+    </select>
+  </label>
+  <button onclick="loadVehicles()">Apply</button>
+
+  <h2>Vehicles</h2>
+  <div id="results">Loading...</div>
+
+  <script>
+    async function loadVehicles() {
+      const params = new URLSearchParams();
+      const fields = ['brand', 'bodyStyle', 'modelYear', 'condition', 'sortBy', 'sortOrder'];
+
+      fields.forEach(function (field) {
+        const value = document.getElementById(field).value;
+        if (value) {
+          params.append(field, value);
+        }
+      });
+
+      const response = await fetch('/api/vehicles?' + params.toString());
+      const result = await response.json();
+
+      const container = document.getElementById('results');
+      container.innerHTML = '';
+
+      if (result.data.length === 0) {
+        container.textContent = 'No vehicles found.';
+        return;
+      }
+
+      result.data.forEach(function (vehicle) {
+        const block = document.createElement('div');
+        block.innerHTML =
+          '<h3><a href="/vehicle.html?id=' + vehicle.id + '">' + vehicle.name + '</a></h3>' +
+          '<p>Brand: ' + vehicle.brand + '</p>' +
+          '<p>Model Year: ' + vehicle.modelYear + '</p>' +
+          '<p>Condition: ' + vehicle.condition + '</p>' +
+          '<p>Price: $' + vehicle.price + '</p>' +
+          '<p>Mileage: ' + vehicle.mileageKm + ' km</p>' +
+          '<hr>';
+        container.appendChild(block);
+      });
+    }
+
+    loadVehicles();
+  </script>
+</body>
+</html>
