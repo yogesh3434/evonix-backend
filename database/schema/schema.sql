@@ -36,19 +36,37 @@ EXECUTE FUNCTION set_updated_at();
 -- Auto-create profile when a Supabase Auth user signs up
 CREATE OR REPLACE FUNCTION create_profile_for_new_user()
 RETURNS TRIGGER AS $$
+DECLARE
+    combined_name TEXT;
 BEGIN
-    INSERT INTO profiles (id, email, first_name, last_name, role)
+    combined_name := COALESCE(
+        NEW.raw_user_meta_data->>'full_name',
+        NEW.raw_user_meta_data->>'name',
+        ''
+    );
+
+    INSERT INTO public.profiles (id, email, first_name, last_name, role)
     VALUES (
         NEW.id,
         NEW.email,
-        COALESCE(NEW.raw_user_meta_data->>'first_name', ''),
-        COALESCE(NEW.raw_user_meta_data->>'last_name', ''),
+        COALESCE(
+            NEW.raw_user_meta_data->>'given_name',   -- Google
+            NEW.raw_user_meta_data->>'first_name',   -- email/password signup, some providers
+            NULLIF(split_part(combined_name, ' ', 1), ''),
+            ''
+        ),
+        COALESCE(
+            NEW.raw_user_meta_data->>'family_name',  -- Google
+            NEW.raw_user_meta_data->>'last_name',    -- email/password signup, some providers
+            NULLIF(regexp_replace(combined_name, '^\S+\s*', ''), ''),
+            ''
+        ),
         'customer'
     );
 
     RETURN NEW;
 END;
-$$ LANGUAGE plpgsql SECURITY DEFINER;
+$$ LANGUAGE plpgsql SECURITY DEFINER SET search_path = public;
 
 CREATE TRIGGER trg_create_profile_after_signup
 AFTER INSERT ON auth.users
