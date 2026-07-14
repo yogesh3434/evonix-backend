@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Shopping Cart</title>
+</head>
+<body>
+  <h1>Shopping Cart</h1>
+  <p>
+    <a href="/index.html">Catalogue</a> |
+    <a href="/hot-deals.html">Hot Deals</a> |
+    <a href="/cart.html">Cart</a> |
+    <a href="/login.html">Sign In</a>
+  </p>
+
+  <div id="notSignedIn">
+    <p>You must sign in to view your cart.</p>
+    <p><a href="/login.html">Go to Sign In</a></p>
+  </div>
+
+  <div id="cart" style="display:none">
+    <div id="items">Loading...</div>
+    <h2 id="summary"></h2>
+  </div>
+
+  <p id="status"></p>
+
+  <script>
+    const token = localStorage.getItem('accessToken');
+
+    if (token) {
+      document.getElementById('notSignedIn').style.display = 'none';
+      document.getElementById('cart').style.display = 'block';
+      loadCart();
+    }
+
+    async function loadCart() {
+      const response = await fetch('/api/cart', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+        return;
+      }
+
+      const cart = result.data;
+      const container = document.getElementById('items');
+      container.innerHTML = '';
+
+      if (cart.items.length === 0) {
+        container.innerHTML = '<p>Your cart is empty.</p>';
+        document.getElementById('summary').textContent = '';
+        return;
+      }
+
+      cart.items.forEach(function (item) {
+        const block = document.createElement('div');
+        block.innerHTML =
+          '<h3>' + item.name + '</h3>' +
+          '<p>Brand: ' + item.brand + '</p>' +
+          '<p>Model: ' + item.model + '</p>' +
+          '<p>Unit Price: $' + item.unitPrice + '</p>' +
+          '<p>Line Total: $' + item.lineTotal + '</p>' +
+          '<label>Quantity: ' +
+          '<input type="number" min="1" value="' + item.quantity + '" id="qty-' + item.vehicleId + '">' +
+          '</label> ' +
+          '<button onclick="updateQuantity(\'' + item.vehicleId + '\')">Update</button> ' +
+          '<button onclick="removeItem(\'' + item.vehicleId + '\')">Remove</button>' +
+          '<hr>';
+        container.appendChild(block);
+      });
+
+      document.getElementById('summary').textContent =
+        'Items: ' + cart.itemCount + ' | Subtotal: $' + cart.subtotal;
+    }
+
+    async function updateQuantity(vehicleId) {
+      const quantity = Number(
+        document.getElementById('qty-' + vehicleId).value
+      );
+
+      const response = await fetch('/api/cart/items/' + vehicleId, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({ quantity: quantity }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        document.getElementById('status').textContent = 'Quantity updated.';
+        loadCart();
+      } else {
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+      }
+    }
+
+    async function removeItem(vehicleId) {
+      const response = await fetch('/api/cart/items/' + vehicleId, {
+        method: 'DELETE',
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      if (response.ok) {
+        document.getElementById('status').textContent = 'Vehicle removed.';
+        loadCart();
+      } else {
+        const result = await response.json();
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+      }
+    }
+  </script>
+</body>
+</html>
