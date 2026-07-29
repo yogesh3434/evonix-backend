@@ -3,6 +3,7 @@ import cors from 'cors';
 import helmet from 'helmet';
 import path from 'path';
 import vehicleRoutes from './routes/vehicleRoutes';
+import loanRoutes from './routes/loanRoutes';
 import { notFoundMiddleware } from './middleware/notFoundMiddleware';
 import { errorMiddleware } from './middleware/errorMiddleware';
 import authRoutes from './routes/authRoutes';
@@ -38,6 +39,7 @@ app.use('/api/vehicles', vehicleRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/cart', cartRoutes);
+app.use('/api/loan', loanRoutes);
 app.use(notFoundMiddleware);
 app.use(errorMiddleware);
 
