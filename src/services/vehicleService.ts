@@ -94,3 +94,21 @@ export const getHotDeals = async (): Promise<VehicleResponse[]> => {
     const vehicles = await findHotDealVehicles();
     return vehicles.map(mapVehicleResponse);
 };
+
+export const compareVehicles = async (
+    ids: string[]
+): Promise<VehicleResponse[]> => {
+    const vehicles: VehicleResponse[] = [];
+
+    for (const id of ids) {
+        const vehicle = await findVehicleById(id);
+
+        if (!vehicle) {
+            throw new AppError(404, `Vehicle not found: ${id}`);
+        }
+
+        vehicles.push(mapVehicleResponse(vehicle));
+    }
+
+    return vehicles;
+};

@@ -49,3 +49,25 @@ export const parseVehicleQuery = (query: unknown): VehicleQuery => {
 
     return result.data;
 };
+
+const compareSchema = z.object({
+    ids: z
+        .string()
+        .min(1)
+        .transform((value) => value.split(','))
+        .pipe(z.array(z.string().uuid()).min(2).max(4)),
+});
+
+export const parseCompareQuery = (query: unknown): string[] => {
+    const result = compareSchema.safeParse(query);
+
+    if (!result.success) {
+        throw new AppError(
+            400,
+            'Provide 2 to 4 valid vehicle IDs to compare',
+            result.error.flatten()
+        );
+    }
+
+    return result.data.ids;
+};

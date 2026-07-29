@@ -1,10 +1,14 @@
 import { NextFunction, Request, Response } from 'express';
 import {
+    compareVehicles,
     getHotDeals,
     getVehicle,
     getVehicles,
 } from '../services/vehicleService';
-import { parseVehicleQuery } from '../validators/vehicleValidator';
+import {
+    parseCompareQuery,
+    parseVehicleQuery,
+} from '../validators/vehicleValidator';
 
 export const listVehicles = async (
     req: Request,
@@ -53,6 +57,25 @@ export const listHotDeals = async (
 ): Promise<void> => {
     try {
         const vehicles = await getHotDeals();
+
+        res.status(200).json({
+            success: true,
+            count: vehicles.length,
+            data: vehicles,
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const compareVehiclesHandler = async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+): Promise<void> => {
+    try {
+        const ids = parseCompareQuery(req.query);
+        const vehicles = await compareVehicles(ids);
 
         res.status(200).json({
             success: true,
