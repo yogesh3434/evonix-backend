@@ -1,0 +1,40 @@
+import { findVehicles } from '../repositories/vehicleRepository';
+import { generateReply } from './aiClient';
+
+const buildSystemInstruction = (catalogue: string): string => {
+    return [
+        'You are a helpful assistant for EvoNix, an online store that sells',
+        'electric vehicles. Answer customer questions about the vehicles,',
+        'help them compare models, explain specifications, and recommend',
+        'vehicles based on their needs.',
+        '',
+        'Only recommend vehicles from the catalogue below. If a customer asks',
+        'about something not in the catalogue, say you do not have that vehicle.',
+        'Keep answers concise and friendly.',
+        '',
+        'Here is the current vehicle catalogue:',
+        catalogue,
+    ].join('\n');
+};
+
+export const askChatbot = async (message: string): Promise<string> => {
+    // pull the current inventory so the bot knows
+    const result = await findVehicles({
+        page: 1,
+        limit: 50,
+        sortBy: 'modelYear',
+        sortOrder: 'desc',
+    });
+
+    const catalogue = result.data
+        .map((v) => {
+            return `- ${v.name} (${v.brand} ${v.model}, ${v.modelYear}): ` +
+                `${v.condition}, ${v.bodyStyle}, ${v.rangeKm} km range, ` +
+                `$${v.price}, ${v.quantity} in stock`;
+        })
+        .join('\n');
+
+    const systemInstruction = buildSystemInstruction(catalogue);
+
+    return generateReply(systemInstruction, message);
+};
