@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - My Orders</title>
+</head>
+<body>
+  <h1>My Orders</h1>
+  <p>
+    <a href="/index.html">Catalogue</a> |
+    <a href="/hot-deals.html">Hot Deals</a> |
+    <a href="/cart.html">Cart</a> |
+    <a href="/login.html">Sign In</a>
+  </p>
+
+  <div id="notSignedIn">
+    <p>You must sign in to view your orders.</p>
+    <p><a href="/login.html">Go to Sign In</a></p>
+  </div>
+
+  <div id="orders" style="display:none">
+    <div id="list">Loading...</div>
+  </div>
+
+  <p id="status"></p>
+
+  <script>
+    const token = localStorage.getItem('accessToken');
+
+    if (token) {
+      document.getElementById('notSignedIn').style.display = 'none';
+      document.getElementById('orders').style.display = 'block';
+      loadOrders();
+    }
+
+    async function loadOrders() {
+      const response = await fetch('/api/orders', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+        return;
+      }
+
+      const container = document.getElementById('list');
+      container.innerHTML = '';
+
+      if (result.data.length === 0) {
+        container.innerHTML =
+          '<p>You have no orders yet. <a href="/index.html">Browse vehicles</a></p>';
+        return;
+      }
+
+      result.data.forEach(function (order) {
+        let itemsHtml = '';
+
+        order.items.forEach(function (item) {
+          itemsHtml +=
+            '<p>' + item.quantity + ' x ' + item.brand + ' ' + item.name +
+            ' at $' + item.unitPrice +
+            (item.customizationTotal > 0
+              ? ' (+$' + item.customizationTotal + ' options)'
+              : '') +
+            '</p>';
+        });
+
+        const block = document.createElement('div');
+        block.innerHTML =
+          '<h3>Order ' + order.id.slice(0, 8) + '...</h3>' +
+          '<p>Placed: ' + new Date(order.createdAt).toLocaleString() + '</p>' +
+          '<p>Status: ' + order.status + ' | Payment: ' + order.paymentStatus + '</p>' +
+          itemsHtml +
+          '<p><strong>Total: $' + order.total + '</strong> (card ending ' +
+          order.cardLastFour + ')</p>' +
+          '<hr>';
+        container.appendChild(block);
+      });
+    }
+  </script>
+</body>
+</html>
