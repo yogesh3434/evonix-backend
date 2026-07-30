@@ -14,6 +14,12 @@
 
   <div id="details">Loading...</div>
 
+  <div id="customizationSection" style="display:none">
+    <h2>Customize This Vehicle</h2>
+    <div id="customizationOptions"></div>
+    <p id="customizationSummary"></p>
+  </div>
+
   <h2>Add to Cart</h2>
   <label>Quantity: <input type="number" id="quantity" min="1" value="1"></label>
   <button onclick="addToCart()">Add to Cart</button>
@@ -31,6 +37,76 @@
 
   <script>
     const vehicleId = new URLSearchParams(window.location.search).get('id');
+    let basePrice = 0;
+
+    async function loadCustomizations() {
+      const response = await fetch('/api/vehicles/' + vehicleId + '/customizations');
+
+      if (!response.ok) {
+        return;
+      }
+
+      const result = await response.json();
+      basePrice = result.data.basePrice;
+
+      if (result.data.categories.length === 0) {
+        return;
+      }
+
+      const container = document.getElementById('customizationOptions');
+      container.innerHTML = '';
+
+      result.data.categories.forEach(function (category) {
+        let optionsHtml = '<option value="">None</option>';
+
+        category.options.forEach(function (option) {
+          if (!option.isAvailable) {
+            return;
+          }
+          optionsHtml +=
+            '<option value="' + option.id + '" data-price="' + option.priceDelta + '">' +
+            option.name + ' (+$' + option.priceDelta + ')' +
+            '</option>';
+        });
+
+        const block = document.createElement('p');
+        block.innerHTML =
+          '<label>' + category.name + ': ' +
+          '<select class="customization" onchange="updateConfiguredPrice()">' +
+          optionsHtml + '</select></label>';
+        container.appendChild(block);
+      });
+
+      document.getElementById('customizationSection').style.display = 'block';
+      updateConfiguredPrice();
+    }
+
+    function selectedOptionIds() {
+      const ids = [];
+
+      document.querySelectorAll('.customization').forEach(function (select) {
+        if (select.value) {
+          ids.push(select.value);
+        }
+      });
+
+      return ids;
+    }
+
+    function updateConfiguredPrice() {
+      let optionsTotal = 0;
+
+      document.querySelectorAll('.customization').forEach(function (select) {
+        const chosen = select.options[select.selectedIndex];
+        if (chosen && chosen.dataset.price) {
+          optionsTotal += Number(chosen.dataset.price);
+        }
+      });
+
+      document.getElementById('customizationSummary').textContent =
+        'Configured price: $' + (basePrice + optionsTotal) +
+        ' (base $' + basePrice + ' + options $' + optionsTotal + ')';
+    }
 
     async function loadDetails() {
       const response = await fetch('/api/vehicles/' + vehicleId);
@@ -97,6 +173,7 @@
         body: JSON.stringify({
           vehicleId: vehicleId,
           quantity: Number(document.getElementById('quantity').value),
+          customizationOptionIds: selectedOptionIds(),
         }),
       });
 
@@ -147,6 +224,7 @@
     }
 
     loadDetails();
+    loadCustomizations();
     loadReviews();
   </script>
 </body>

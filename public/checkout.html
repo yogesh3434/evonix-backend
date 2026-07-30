@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>EvoNix - Checkout</title>
+</head>
+<body>
+  <h1>Checkout</h1>
+  <p>
+    <a href="/index.html">Catalogue</a> |
+    <a href="/hot-deals.html">Hot Deals</a> |
+    <a href="/cart.html">Cart</a> |
+    <a href="/login.html">Sign In</a>
+  </p>
+
+  <div id="notSignedIn">
+    <p>You must sign in to check out.</p>
+    <p><a href="/login.html">Go to Sign In</a></p>
+  </div>
+
+  <div id="checkout" style="display:none">
+    <h2>Order Summary</h2>
+    <div id="items">Loading...</div>
+    <p id="summary"></p>
+
+    <div id="forms">
+      <h2>Shipping Information</h2>
+      <p><label>Full Name: <input type="text" id="fullName"></label></p>
+      <p><label>Street: <input type="text" id="street"></label></p>
+      <p><label>City: <input type="text" id="city"></label></p>
+      <p><label>Province: <input type="text" id="province"></label></p>
+      <p><label>Country: <input type="text" id="country" value="Canada"></label></p>
+      <p><label>Postal Code: <input type="text" id="postalCode"></label></p>
+      <p><label>Phone (optional): <input type="text" id="phone"></label></p>
+
+      <h2>Payment Information</h2>
+      <p><label>Card Number: <input type="text" id="cardNumber"></label></p>
+      <p><label>Name on Card: <input type="text" id="cardHolderName"></label></p>
+      <p><label>Expiry Month: <input type="number" id="expiryMonth" min="1" max="12"></label></p>
+      <p><label>Expiry Year: <input type="number" id="expiryYear"></label></p>
+      <p><label>CVV: <input type="text" id="cvv"></label></p>
+
+      <p><button onclick="placeOrder()" id="payButton">Place Order</button></p>
+    </div>
+
+    <div id="retry" style="display:none">
+      <p><button onclick="retryPayment()">Retry Payment</button></p>
+    </div>
+
+    <div id="confirmation" style="display:none">
+      <h2>Order Confirmed</h2>
+      <div id="confirmationDetails"></div>
+      <p><a href="/orders.html">View your orders</a> | <a href="/index.html">Back to catalogue</a></p>
+    </div>
+  </div>
+
+  <p id="status"></p>
+
+  <script>
+    const token = localStorage.getItem('accessToken');
+    let deniedOrderId = null;
+
+    if (token) {
+      document.getElementById('notSignedIn').style.display = 'none';
+      document.getElementById('checkout').style.display = 'block';
+      loadCart();
+    }
+
+    async function loadCart() {
+      const response = await fetch('/api/cart', {
+        headers: { 'Authorization': 'Bearer ' + token },
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        document.getElementById('status').textContent =
+          'Error: ' + result.message;
+        return;
+      }
+
+      const cart = result.data;
+      const container = document.getElementById('items');
+      container.innerHTML = '';
+
+      if (cart.items.length === 0) {
+        container.innerHTML =
+          '<p>Your cart is empty. <a href="/index.html">Browse vehicles</a></p>';
+        document.getElementById('forms').style.display = 'none';
+        return;
+      }
+
+      cart.items.forEach(function (item) {
+        let optionsText = '';
+
+        if (item.customizationOptions && item.customizationOptions.length > 0) {
+          optionsText = '<p>Options: ' + item.customizationOptions
+            .map(function (option) {
+              return option.name + ' (+$' + option.priceDelta + ')';
+            })
+            .join(', ') + '</p>';
+        }
+
+        const block = document.createElement('div');
+        block.innerHTML =
+          '<h3>' + item.name + '</h3>' +
+          '<p>Quantity: ' + item.quantity + ' | Unit Price: $' + item.unitPrice + '</p>' +
+          optionsText +
+          '<p>Line Total: $' + item.lineTotal + '</p>' +
+          '<hr>';
+        container.appendChild(block);
+      });
+
+      document.getElementById('summary').textContent =
+        'Subtotal: $' + cart.subtotal + ' (tax added at payment)';
+    }
+
+    function readCheckoutForm() {
+      return {
+        shipping: {
+          fullName: document.getElementById('fullName').value,
+          street: document.getElementById('street').value,
+          city: document.getElementById('city').value,
+          province: document.getElementById('province').value,
+          country: document.getElementById('country').value,
+          postalCode: document.getElementById('postalCode').value,
+          phone: document.getElementById('phone').value || undefined,
+        },
+        payment: {
+          cardNumber: document.getElementById('cardNumber').value,
+          cardHolderName: document.getElementById('cardHolderName').value,
+          expiryMonth: Number(document.getElementById('expiryMonth').value),
+          expiryYear: Number(document.getElementById('expiryYear').value),
+          cvv: document.getElementById('cvv').value,
+        },
+      };
+    }
+
+    async function placeOrder() {
+      document.getElementById('payButton').disabled = true;
+      document.getElementById('status').textContent = 'Processing payment...';
+
+      const response = await fetch('/api/orders', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify(readCheckoutForm()),
+      });
+
+      const result = await response.json();
+      document.getElementById('payButton').disabled = false;
+      handleOrderResult(response, result);
+    }
+
+    async function retryPayment() {
+      document.getElementById('status').textContent = 'Retrying payment...';
+
+      const response = await fetch('/api/orders/' + deniedOrderId + '/payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + token,
+        },
+        body: JSON.stringify({
+          cardNumber: document.getElementById('cardNumber').value,
+          cardHolderName: document.getElementById('cardHolderName').value,
+        }),
+      });
+
+      const result = await response.json();
+      handleOrderResult(response, result);
+    }
+
+    function handleOrderResult(response, result) {
+      if (response.ok) {
+        showConfirmation(result.data);
+        return;
+      }
+
+      if (response.status === 402) {
+        deniedOrderId = result.details.orderId;
+        document.getElementById('retry').style.display = 'block';
+        document.getElementById('status').textContent =
+          result.message + ' Your order is saved, so you can retry without rebuilding your cart.';
+        return;
+      }
+
+      document.getElementById('status').textContent =
+        'Error: ' + result.message;
+    }
+
+    function showConfirmation(order) {
+      document.getElementById('forms').style.display = 'none';
+      document.getElementById('retry').style.display = 'none';
+      document.getElementById('items').style.display = 'none';
+      document.getElementById('summary').style.display = 'none';
+      document.getElementById('status').textContent = '';
+      document.getElementById('confirmation').style.display = 'block';
+
+      let itemsHtml = '';
+      order.items.forEach(function (item) {
+        itemsHtml +=
+          '<p>' + item.quantity + ' x ' + item.name +
+          ' at $' + item.unitPrice +
+          (item.customizationTotal > 0
+            ? ' (+$' + item.customizationTotal + ' options)'
+            : '') +
+          '</p>';
+      });
+
+      document.getElementById('confirmationDetails').innerHTML =
+        '<p>Order ID: ' + order.id + '</p>' +
+        '<p>Status: ' + order.status + '</p>' +
+        itemsHtml +
+        '<p>Subtotal: $' + order.subtotal + '</p>' +
+        '<p>Tax: $' + order.tax + '</p>' +
+        '<p><strong>Total: $' + order.total + '</strong></p>' +
+        '<p>Card ending in ' + order.cardLastFour + '</p>' +
+        '<p>Shipping to: ' + order.shipping.fullName + ', ' +
+        order.shipping.street + ', ' + order.shipping.city + ', ' +
+        order.shipping.province + ' ' + order.shipping.postalCode + '</p>';
+    }
+  </script>
+</body>
+</html>
