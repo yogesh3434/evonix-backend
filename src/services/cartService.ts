@@ -18,11 +18,8 @@ import {
     CartResponse,
     UpdateCartItemInput,
 } from '../types/cart';
+import { priceCustomizations } from './customizationService';
 
-/**
- * A vehicle on a hot deal is charged at its hot-deal price. This mirrors the
- * effective-price rule the catalogue uses when it filters and sorts.
- */
 const effectivePrice = (vehicle: Vehicle): number => {
     if (vehicle.isHotDeal && vehicle.hotDealPrice !== null) {
         return Number(vehicle.hotDealPrice);
@@ -43,6 +40,7 @@ const mapCartResponse = (
     const mappedItems: CartItemResponse[] = items.map((item) => {
         const vehicle = vehiclesById.get(item.vehicleId);
         const unitPrice = Number(item.unitPrice);
+        const customizationTotal = Number(item.customizationTotal ?? 0);
 
         return {
             id: item.id,
@@ -52,7 +50,12 @@ const mapCartResponse = (
             model: vehicle?.model ?? '',
             unitPrice,
             quantity: item.quantity,
-            lineTotal: Number((unitPrice * item.quantity).toFixed(2)),
+            customizationOptions: item.customizationOptions ?? [],
+            customizationTotal,
+
+            lineTotal: Number(
+                ((unitPrice + customizationTotal) * item.quantity).toFixed(2)
+            ),
         };
     });
 
@@ -94,14 +97,12 @@ const buildCartResponse = async (cart: Cart): Promise<CartResponse> => {
     return mapCartResponse(cart, items, vehicles);
 };
 
-// UC10: view the shopping cart and its running total.
 export const getCart = async (userId: string): Promise<CartResponse> => {
     const cart = await getOrCreateCart(userId);
 
     return buildCartResponse(cart);
 };
 
-// UC10 / UC-M5: add a vehicle to the shopping cart.
 export const addItemToCart = async (
     userId: string,
     input: AddCartItemInput
@@ -115,8 +116,6 @@ export const addItemToCart = async (
     const cart = await getOrCreateCart(userId);
     const existingItem = await findCartItem(cart.id, input.vehicleId);
 
-    // Adding a vehicle already in the cart tops up the existing line
-    // rather than creating a duplicate one.
     const requestedQuantity = existingItem
         ? existingItem.quantity + input.quantity
         : input.quantity;
@@ -128,18 +127,30 @@ export const addItemToCart = async (
         );
     }
 
+    const customizations =
+        input.customizationOptionIds.length > 0
+            ? await priceCustomizations(
+                  vehicle.id,
+                  input.customizationOptionIds
+              )
+            : {
+                  options: existingItem?.customizationOptions ?? [],
+                  total: Number(existingItem?.customizationTotal ?? 0),
+              };
+
     await saveCartItem({
         ...(existingItem ? { id: existingItem.id } : {}),
         cartId: cart.id,
         vehicleId: vehicle.id,
         quantity: requestedQuantity,
         unitPrice: effectivePrice(vehicle).toFixed(2),
+        customizationOptions: customizations.options,
+        customizationTotal: customizations.total.toFixed(2),
     });
 
     return buildCartResponse(cart);
 };
 
-// UC10 / UC-C2: change the quantity of a vehicle already in the cart.
 export const updateCartItem = async (
     userId: string,
     vehicleId: string,
@@ -171,12 +182,16 @@ export const updateCartItem = async (
         vehicleId,
         quantity: input.quantity,
         unitPrice: effectivePrice(vehicle).toFixed(2),
+
+        customizationOptions: existingItem.customizationOptions ?? [],
+        customizationTotal: Number(
+            existingItem.customizationTotal ?? 0
+        ).toFixed(2),
     });
 
     return buildCartResponse(cart);
 };
 
-// UC10 / UC-C2: remove a vehicle from the cart.
 export const removeCartItem = async (
     userId: string,
     vehicleId: string

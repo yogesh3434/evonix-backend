@@ -1,6 +1,9 @@
+import { SelectedCustomization } from './customization';
+
 export type AddCartItemInput = {
     vehicleId: string;
     quantity: number;
+    customizationOptionIds: string[];
 };
 
 export type UpdateCartItemInput = {
@@ -15,6 +18,8 @@ export type CartItemResponse = {
     model: string;
     unitPrice: number;
     quantity: number;
+    customizationOptions: SelectedCustomization[];
+    customizationTotal: number;
     lineTotal: number;
 };
 

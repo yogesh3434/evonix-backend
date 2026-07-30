@@ -6,6 +6,8 @@ const addCartItemSchema = z.object({
     vehicleId: z.string().uuid(),
 
     quantity: z.coerce.number().int().min(1).max(10).default(1),
+
+    customizationOptionIds: z.array(z.string().uuid()).max(20).default([]),
 });
 
 const updateCartItemSchema = z.object({
