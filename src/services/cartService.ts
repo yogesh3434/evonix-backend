@@ -18,6 +18,7 @@ import {
     CartResponse,
     UpdateCartItemInput,
 } from '../types/cart';
+import { priceCustomizations } from './customizationService';
 
 /**
  * A vehicle on a hot deal is charged at its hot-deal price. This mirrors the
@@ -43,6 +44,7 @@ const mapCartResponse = (
     const mappedItems: CartItemResponse[] = items.map((item) => {
         const vehicle = vehiclesById.get(item.vehicleId);
         const unitPrice = Number(item.unitPrice);
+        const customizationTotal = Number(item.customizationTotal ?? 0);
 
         return {
             id: item.id,
@@ -52,7 +54,13 @@ const mapCartResponse = (
             model: vehicle?.model ?? '',
             unitPrice,
             quantity: item.quantity,
-            lineTotal: Number((unitPrice * item.quantity).toFixed(2)),
+            customizationOptions: item.customizationOptions ?? [],
+            customizationTotal,
+            // UC11: the configured options are priced per unit, so the line
+            // total is (base + options) times quantity.
+            lineTotal: Number(
+                ((unitPrice + customizationTotal) * item.quantity).toFixed(2)
+            ),
         };
     });
 
@@ -128,12 +136,28 @@ export const addItemToCart = async (
         );
     }
 
+    // UC11: validate the chosen options against this vehicle and price them.
+    // Re-selecting options on a vehicle already in the cart replaces the earlier
+    // configuration, since a cart line holds one configuration.
+    const customizations =
+        input.customizationOptionIds.length > 0
+            ? await priceCustomizations(
+                  vehicle.id,
+                  input.customizationOptionIds
+              )
+            : {
+                  options: existingItem?.customizationOptions ?? [],
+                  total: Number(existingItem?.customizationTotal ?? 0),
+              };
+
     await saveCartItem({
         ...(existingItem ? { id: existingItem.id } : {}),
         cartId: cart.id,
         vehicleId: vehicle.id,
         quantity: requestedQuantity,
         unitPrice: effectivePrice(vehicle).toFixed(2),
+        customizationOptions: customizations.options,
+        customizationTotal: customizations.total.toFixed(2),
     });
 
     return buildCartResponse(cart);
@@ -171,6 +195,12 @@ export const updateCartItem = async (
         vehicleId,
         quantity: input.quantity,
         unitPrice: effectivePrice(vehicle).toFixed(2),
+        // A quantity change must not silently discard the customer's
+        // configuration, so it is carried over untouched.
+        customizationOptions: existingItem.customizationOptions ?? [],
+        customizationTotal: Number(
+            existingItem.customizationTotal ?? 0
+        ).toFixed(2),
     });
 
     return buildCartResponse(cart);

@@ -6,6 +6,10 @@ const addCartItemSchema = z.object({
     vehicleId: z.string().uuid(),
 
     quantity: z.coerce.number().int().min(1).max(10).default(1),
+
+    // UC11: the customization options chosen on the configurator. Optional, so
+    // a plain "Add to cart" with no configuration keeps working unchanged.
+    customizationOptionIds: z.array(z.string().uuid()).max(20).default([]),
 });
 
 const updateCartItemSchema = z.object({
