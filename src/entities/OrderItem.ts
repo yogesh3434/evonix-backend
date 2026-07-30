@@ -1,18 +1,19 @@
-import {
-    Column,
-    CreateDateColumn,
-    Entity,
-    PrimaryGeneratedColumn,
-} from 'typeorm';
-import { SelectedCustomization } from '../types/customization';
+import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity({ name: 'cart_items' })
-export class CartItem {
+export type OrderItemCustomization = {
+    optionId: string;
+    name: string;
+    category: string;
+    priceDelta: number;
+};
+
+@Entity({ name: 'order_items' })
+export class OrderItem {
     @PrimaryGeneratedColumn('uuid')
     id!: string;
 
-    @Column({ name: 'cart_id', type: 'uuid' })
-    cartId!: string;
+    @Column({ name: 'order_id', type: 'uuid' })
+    orderId!: string;
 
     @Column({ name: 'vehicle_id', type: 'uuid' })
     vehicleId!: string;
@@ -28,7 +29,7 @@ export class CartItem {
         type: 'jsonb',
         default: () => "'[]'",
     })
-    customizationOptions!: SelectedCustomization[];
+    customizationOptions!: OrderItemCustomization[];
 
     @Column({
         name: 'customization_total',
@@ -38,7 +39,4 @@ export class CartItem {
         default: 0,
     })
     customizationTotal!: string;
-
-    @CreateDateColumn({ name: 'added_at', type: 'timestamptz' })
-    addedAt!: Date;
 }
