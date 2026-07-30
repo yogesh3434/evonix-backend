@@ -2,6 +2,7 @@ import 'reflect-metadata';
 import dotenv from 'dotenv';
 import app from './app';
 import { AppDataSource } from './config/datasource';
+import { registerOrderSubscribers } from './events/orderSubscribers';
 
 dotenv.config();
 
@@ -12,7 +13,8 @@ async function startServer() {
         await AppDataSource.initialize();
 
         console.log('Database connected successfully');
-
+        registerOrderSubscribers();
+        
         app.listen(PORT, () => {
             console.log(`Server running on port ${PORT}`);
         });
