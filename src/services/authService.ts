@@ -84,7 +84,17 @@ export const getCurrentUser = async (
             .eq('id', data.user.id)
             .maybeSingle();
 
-        profile = profileRow ?? null;
+        if (profileRow) {
+            // Address lives in a separate table, so surface whether one
+            // exists alongside the profile row - the frontend uses this
+            // (phone OR address) to decide whether the profile is complete.
+            const { count } = await supabaseAdmin
+                .from('addresses')
+                .select('id', { count: 'exact', head: true })
+                .eq('user_id', data.user.id);
+
+            profile = { ...profileRow, hasAddress: Boolean(count && count > 0) };
+        }
     }
 
     return { id: data.user.id, email: data.user.email, profile };
