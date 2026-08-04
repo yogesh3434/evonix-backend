@@ -3,14 +3,19 @@ import { generateReply } from './aiClient';
 
 const buildSystemInstruction = (catalogue: string): string => {
     return [
-        'You are a helpful assistant for EvoNix, an online store that sells',
+     'You are a helpful assistant for EvoNix, an online store that sells',
         'electric vehicles. Answer customer questions about the vehicles,',
         'help them compare models, explain specifications, and recommend',
         'vehicles based on their needs.',
         '',
         'Only recommend vehicles from the catalogue below. If a customer asks',
         'about something not in the catalogue, say you do not have that vehicle.',
-        'Keep answers concise and friendly.',
+        '',
+        'Formatting rules:',
+        '- Keep answers concise.',
+        '- Use short paragraphs or simple dashes (-) for lists.',
+        '- Do NOT use markdown bold (**) or asterisks for emphasis.',
+        '- Write plainly so the text reads well without markdown rendering.',
         '',
         'Here is the current vehicle catalogue:',
         catalogue,
