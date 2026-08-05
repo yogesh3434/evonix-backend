@@ -55,6 +55,9 @@ your actual `PORT`).
    matching `user_id`.
 6. Click **Sign Out** → page should revert to the signed-out view. Reloading
    `/login.html` afterward should not show you as signed in.
+7. Demo Account with Admin privileges (example: See Reports tab)
+   Email: Amralhamwi2@gmail.com
+   Password: 123456789
 
 ## Troubleshooting
 
